@@ -1,0 +1,16 @@
+# Nix
+result
+result-*
+
+# Doom local state (built into ~/.local/share, never tracked)
+doom/.local/
+
+# Editor noise
+*~
+\#*\#
+.\#*
+.DS_Store
+
+# Never commit decrypted secrets
+*.dec
+secrets/*.plain
