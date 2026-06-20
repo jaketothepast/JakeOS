@@ -28,12 +28,14 @@
     # Declared config is authoritative — UI tweaks don't silently override it,
     # and they don't survive a reboot. This is intentional (no soft escape).
     mutableSettings = false;
+    # Web UI bind (the module injects these into http.address).
+    host = "127.0.0.1";
+    port = 3000;
     settings = {
-      http.address = "127.0.0.1:3000"; # admin UI, localhost only
       dns = {
         bind_hosts = [ "127.0.0.1" ];
         port = 53;
-        # AdGuard's own upstream is allow-listed in nftables (skuid adguardhome),
+        # AdGuard's own upstream is allow-listed in nftables (by destination IP),
         # so plain-DNS upstream works even though everything else is forced to :53.
         upstream_dns = [ "9.9.9.9" "1.1.1.1" ];
         bootstrap_dns = [ "9.9.9.9" "1.1.1.1" ];
@@ -41,11 +43,9 @@
       filtering = {
         protection_enabled = true;
         filtering_enabled = true;
-        # Make the DoH "canary" fail so Firefox auto-disables DoH (belt + braces
-        # with the locked DNSOverHTTPS policy below).
-        rewrites = [
-          { domain = "use-application-dns.net"; answer = "NXDOMAIN"; }
-        ];
+        # NOTE: the DoH "canary" (use-application-dns.net) is intentionally NOT
+        # handled here — the locked Firefox `DNSOverHTTPS { Locked = true; }`
+        # policy below is the real control, so a rewrite would be redundant.
       };
       # Ad/tracker/malware lists. Social/time-sink blocking is per-mode via hosts.
       filters = [
@@ -102,9 +102,13 @@
           # No DNS-over-HTTPS to known resolvers.
           ip daddr @doh4 tcp dport 443 reject
 
-          # Any other plain DNS must go to the local AdGuard resolver.
+          # Any other plain DNS must go to the local AdGuard resolver (IPv4 + IPv6).
           udp dport 53 ip daddr != 127.0.0.1 reject
           tcp dport 53 ip daddr != 127.0.0.1 reject
+          udp dport 53 ip6 daddr != ::1 reject
+          tcp dport 53 ip6 daddr != ::1 reject
+          # (IPv6 DoH to brand-new endpoints remains a known gap — expand doh sets
+          #  with an ip6 set from dibdot/DoH-IP-blocklists if you want to close it.)
         }
       '';
     };

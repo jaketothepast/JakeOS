@@ -58,7 +58,7 @@
       "/var/lib/nixos"
       "/var/lib/systemd/coredump"
       "/var/lib/bluetooth"
-      "/var/lib/adguardhome"
+      "/var/lib/AdGuardHome"
       "/etc/NetworkManager/system-connections"
     ];
     files = [

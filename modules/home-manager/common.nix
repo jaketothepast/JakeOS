@@ -130,10 +130,7 @@ in
       brightnessctl
     ];
 
-    home.sessionVariables = {
-      EDITOR = "emacsclient -a emacs";
-      VISUAL = "emacsclient -a emacs";
-    };
+    # EDITOR/VISUAL are set by services.emacs.defaultEditor below — don't double-set.
 
     # =========================================================================
     #  Emacs daemon + Doom (kept close to stock)
@@ -224,7 +221,7 @@ in
       // Lazy Xwayland (eager start has black-screened niri on NVIDIA — #2771).
       spawn-at-startup "sh" "-c" "xwayland-satellite || true"
       // Open the daily agenda first — the first thing you see is "what's next".
-      spawn-at-startup "sh" "-c" "sleep 3; ${pkgs.emacs-pgtk}/bin/emacsclient -a '' -c -e '(org-agenda nil \"d\")'"
+      spawn-at-startup "sh" "-c" "sleep 3; ${pkgs.emacs-pgtk}/bin/emacsclient -a emacs -c -e '(org-agenda nil \"d\")'"
       ${lib.optionalString config.adhd.grayscaleAtLogin ''spawn-at-startup "focus-grayscale" "on"''}
 
       environment {
