@@ -28,6 +28,10 @@
   # ===========================================================================
   networking.nftables = {
     enable = true;
+    # The ruleset references `meta skuid "systemd-resolve"`, but the build sandbox
+    # has no such user, so the build-time `nft -c` check fails. The user exists at
+    # runtime, so skip the build check and let it load live.
+    checkRuleset = false;
     tables.dns_lockdown = {
       family = "inet";
       content = ''
