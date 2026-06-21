@@ -2,30 +2,32 @@
   description = "ADHD-friendly NixOS: hard to do the wrong thing, easy to do the right thing";
 
   inputs = {
-    # Stable base: a boring, reliable foundation cuts the breakage/tinkering treadmill.
-    # niri still comes from niri-flake's own package + cache, so stable nixpkgs is fine.
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    # Inputs are PINNED to the exact revisions the machine was installed with, so a
+    # `nixos-rebuild` reuses the already-built/cached packages instead of drifting to
+    # newer revs and recompiling niri/ollama/codex. To update deliberately later,
+    # point these back at their branches and run `nix flake update`.
+    nixpkgs.url = "github:NixOS/nixpkgs/d6df3513510aa548c83868fd22bfddd0a8c0a0d4"; # nixos-25.11 @ install
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.11";
+      url = "github:nix-community/home-manager/3ee51fbdac8c8bdfe1e7e1fcaba6520a563f394f"; # release-25.11
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # niri compositor (NixOS + home-manager modules, plus the niri.cachix.org cache).
     niri = {
-      url = "github:sodiboo/niri-flake";
+      url = "github:sodiboo/niri-flake/493ce1e33e72f86312584f331c8cf52b3432ec99";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Declarative disk partitioning (automates install — no manual fdisk/cryptsetup).
     disko = {
-      url = "github:nix-community/disko";
+      url = "github:nix-community/disko/ff8702b4de27f72b4c78573dfb89ec74e36abdf1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Secrets (API keys for the AI CLIs), mode-scoped.
     sops-nix = {
-      url = "github:Mic92/sops-nix";
+      url = "github:Mic92/sops-nix/420f8d2e9882911f65cfac15cc706f639ba96cca";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -33,7 +35,7 @@
     # Intentionally does NOT follow our nixpkgs — these fast-moving tools need newer
     # deps (e.g. pnpm_11) than stable 25.11 ships. It brings its own pinned nixpkgs;
     # the resulting binaries don't need to match our system nixpkgs.
-    llm-agents.url = "github:numtide/llm-agents.nix";
+    llm-agents.url = "github:numtide/llm-agents.nix/6b704a00ef4211936ce6815770386638ddf1d0e3";
   };
 
   outputs =
