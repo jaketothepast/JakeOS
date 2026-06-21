@@ -153,18 +153,27 @@ in
         ExecStart = pkgs.writeShellScript "doom-sync" ''
           set -u
           EMACSDIR="$HOME/.config/emacs"
-          # Wait up to ~60s for the network to come up (wifi after autologin).
+          # Wait up to ~60s for the network (wifi comes up after autologin).
+          online=
           for _ in $(seq 1 30); do
-            curl -sf -o /dev/null --max-time 5 https://github.com && break
+            curl -sf -o /dev/null --max-time 5 https://github.com && { online=1; break; }
             sleep 2
           done
-          # (Re)install Doom if the launcher isn't present.
-          if [ ! -x "$EMACSDIR/bin/doom" ]; then
-            rm -rf "$EMACSDIR"
-            git clone --depth=1 https://github.com/doomemacs/doomemacs "$EMACSDIR" || exit 1
-            "$EMACSDIR/bin/doom" install --no-config --no-env --force || exit 1
+          # Install Doom if missing — clone to a TEMP dir and swap on success, so a
+          # failed/offline clone never destroys an existing working install.
+          if [ ! -x "$EMACSDIR/bin/doom" ] && [ -n "$online" ]; then
+            tmp="$EMACSDIR.new"
+            rm -rf "$tmp"
+            if git clone --depth=1 https://github.com/doomemacs/doomemacs "$tmp" \
+               && "$tmp/bin/doom" install --no-config --no-env --force; then
+              rm -rf "$EMACSDIR"; mv "$tmp" "$EMACSDIR"
+            fi
+            rm -rf "$tmp"
           fi
-          "$EMACSDIR/bin/doom" sync
+          # Sync only if Doom is present and we're online; best-effort (never fail
+          # the unit, which would block the Emacs daemon).
+          [ -x "$EMACSDIR/bin/doom" ] && [ -n "$online" ] && "$EMACSDIR/bin/doom" sync
+          exit 0
         '';
       };
       Install.WantedBy = [ "default.target" ];
