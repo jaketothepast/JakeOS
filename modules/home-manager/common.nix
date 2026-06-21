@@ -228,7 +228,10 @@ in
       // Lazy Xwayland (eager start has black-screened niri on NVIDIA — #2771).
       spawn-at-startup "sh" "-c" "xwayland-satellite || true"
       // Open the daily agenda first — the first thing you see is "what's next".
-      spawn-at-startup "sh" "-c" "sleep 3; ${pkgs.emacs-pgtk}/bin/emacsclient -a emacs -c -e '(org-agenda nil \"d\")'"
+      // Open the daily agenda in a fresh frame. No `-a emacs` fallback — if the
+      // daemon isn't up yet it just no-ops instead of opening the expression as
+      // a literal filename.
+      spawn-at-startup "sh" "-c" "sleep 5; ${pkgs.emacs-pgtk}/bin/emacsclient -c -e '(org-agenda nil \"d\")'"
 
       environment {
           DISPLAY ":0"   // for Xwayland-satellite clients

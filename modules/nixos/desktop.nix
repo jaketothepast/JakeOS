@@ -56,6 +56,7 @@
   # ---- Fonts ----
   fonts.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
+    nerd-fonts.symbols-only   # "Symbols Nerd Font" — Doom/nerd-icons glyphs
     noto-fonts
     noto-fonts-color-emoji
     noto-fonts-cjk-sans
