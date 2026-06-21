@@ -27,10 +27,13 @@
   (setq org-log-done 'time
         org-log-into-drawer t)
 
-  ;; Refile within the agenda files, up to 2 levels deep.
-  (setq org-refile-targets '((org-agenda-files :maxlevel . 2))
+  ;; Refile: move an inbox item to a real home. Targets = any heading up to 3
+  ;; deep in your agenda files (inbox.org, projects.org). Show the full path when
+  ;; choosing, and let you type a NOT-yet-existing heading to create it on the fly.
+  (setq org-refile-targets '((org-agenda-files :maxlevel . 3))
         org-refile-use-outline-path 'file
-        org-outline-path-complete-in-steps nil)
+        org-outline-path-complete-in-steps nil
+        org-refile-allow-creating-parent-nodes 'confirm)
 
   ;; ---- Capture: the load-bearing offload ----------------------------------
   ;; Two templates only. The global Mod+N hotkey jumps STRAIGHT to "t" (no menu,
@@ -93,6 +96,13 @@ The WM created a frame named \"doom-capture\" for us."
                           '((:name "Refile me (inbox)" :file-path "inbox" :order 0)
                             (:name "NEXT — do these" :todo "NEXT" :order 1)
                             (:discard (:anything t)))))))))))
+
+;; =============================================================================
+;;  Leader keys — make the daily loop one press each (no guessing)
+;; =============================================================================
+(map! :leader
+      :desc "Daily dashboard"     "o d" (cmd! (org-agenda nil "d"))
+      :desc "Open inbox (refile)" "o i" (cmd! (find-file (expand-file-name "inbox.org" org-directory))))
 
 ;; =============================================================================
 ;;  org-roam — dailies + notes (the second brain), separate from tasks

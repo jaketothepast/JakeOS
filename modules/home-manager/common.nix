@@ -153,6 +153,12 @@ in
         ExecStart = pkgs.writeShellScript "doom-sync" ''
           set -u
           EMACSDIR="$HOME/.config/emacs"
+          # Seed WRITABLE org files (idempotent) so capture has a place to land and
+          # refile has somewhere to go. home.file can't manage these — they must be
+          # writable, and we must never clobber the user's real notes ([ -e ] guard).
+          mkdir -p "$HOME/org/roam/daily"
+          [ -e "$HOME/org/inbox.org" ]    || printf '#+title: Inbox\n\n* Inbox\n' > "$HOME/org/inbox.org"
+          [ -e "$HOME/org/projects.org" ] || printf '#+title: Projects\n\n* Work\n* Personal\n* Someday\n' > "$HOME/org/projects.org"
           # Wait up to ~60s for the network (wifi comes up after autologin).
           online=
           for _ in $(seq 1 30); do
@@ -231,16 +237,16 @@ in
           }
       }
 
-      // Startup: notifications paused, bar up, Xwayland bridge, agenda first.
+      // Startup: notifications paused, bar up, Xwayland bridge, Doom dashboard.
       spawn-at-startup "sh" "-c" "${pkgs.dunst}/bin/dunstctl set-paused true"
       spawn-at-startup "waybar"
       // Lazy Xwayland (eager start has black-screened niri on NVIDIA — #2771).
       spawn-at-startup "sh" "-c" "xwayland-satellite || true"
-      // Open the daily agenda first — the first thing you see is "what's next".
-      // Open the daily agenda in a fresh frame. No `-a emacs` fallback — if the
-      // daemon isn't up yet it just no-ops instead of opening the expression as
-      // a literal filename.
-      spawn-at-startup "sh" "-c" "sleep 5; ${pkgs.emacs-pgtk}/bin/emacsclient -c -e '(org-agenda nil \"d\")'"
+      // Open a Doom frame on login — the Doom dashboard, where SPC is the live
+      // leader. The daily agenda is one keypress: SPC o d. (We deliberately do NOT
+      // eval org-agenda from the command line; that was fragile and could leave a
+      // stray buffer/file, and it dropped you into a buffer where SPC didn't work.)
+      spawn-at-startup "sh" "-c" "sleep 5; ${pkgs.emacs-pgtk}/bin/emacsclient -c"
 
       environment {
           DISPLAY ":0"   // for Xwayland-satellite clients
