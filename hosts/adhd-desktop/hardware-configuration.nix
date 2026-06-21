@@ -7,21 +7,18 @@
 #
 #  ...then merge the generated `boot.initrd.availableKernelModules`,
 #  `hardware.cpu.*.updateMicrocode`, and any extra `kernelModules` into the
-#  block below. Keep the `fileSystems` / `swapDevices` / LUKS layout from THIS
-#  file — it encodes the btrfs-subvolume + impermanence + shared-LUKS design.
+#  block below. Keep the `fileSystems` / LUKS layout from THIS file.
 #
 #  Disk layout this config assumes (see docs/MANUAL.md "Install"):
 #    - ESP            vfat            -> /boot
-#    - cryptroot      LUKS (passA)    -> btrfs with subvolumes:
-#                       @root    -> /        (WIPED to a blank snapshot each boot)
-#                       @nix     -> /nix     (neededForBoot)
-#                       @persist -> /persist (neededForBoot; system state)
-#    - cryptwork      LUKS (passB)    -> /persist-work     (mounted only in `work`)
-#    - cryptpersonal  LUKS (passC)    -> /persist-personal (mounted only in `personal`)
+#    - cryptroot      LUKS (one pass) -> btrfs with subvolumes:
+#                       @root -> /     (PERSISTENT — normal root, no wipe)
+#                       @nix  -> /nix
+#    - cryptwork      LUKS (same pass) -> /home/jacob-work     (mounted only in `work`)
+#    - cryptpersonal  LUKS (same pass) -> /home/jacob-personal (mounted only in `personal`)
 #
 #  The per-mode volumes (cryptwork / cryptpersonal) are declared inside the
-#  specialisations in ../../modules/nixos/modes.nix, NOT here, so each mode only
-#  unlocks and mounts its own encrypted data.
+#  specialisations in ../../modules/nixos/modes.nix, NOT here.
 ###############################################################################
 { config, lib, modulesPath, ... }:
 {
@@ -33,13 +30,14 @@
   boot.kernelModules = [ "kvm-intel" ]; # or "kvm-amd"
   boot.extraModulePackages = [ ];
 
-  # --- Shared LUKS container (passphrase A); unlocked in initrd for every mode ---
+  # --- Root LUKS container; unlocked in initrd for every mode ---
   # REPLACE the UUID with: blkid /dev/<your-luks-partition>
   boot.initrd.luks.devices.cryptroot = {
     device = "/dev/disk/by-uuid/REPLACE-LUKS-CRYPTROOT-UUID";
     allowDiscards = true;
   };
 
+  # Normal persistent root (no impermanence). Files survive reboots.
   fileSystems."/" = {
     device = "/dev/mapper/cryptroot";
     fsType = "btrfs";
@@ -50,16 +48,6 @@
     device = "/dev/mapper/cryptroot";
     fsType = "btrfs";
     options = [ "subvol=@nix" "compress=zstd" "noatime" ];
-    neededForBoot = true;
-  };
-
-  # System-level persistent state (ssh host key / sops age key, machine-id,
-  # NetworkManager, AdGuard, Ollama). Available in BOTH modes.
-  fileSystems."/persist" = {
-    device = "/dev/mapper/cryptroot";
-    fsType = "btrfs";
-    options = [ "subvol=@persist" "compress=zstd" "noatime" ];
-    neededForBoot = true;
   };
 
   # REPLACE the UUID with the ESP partition UUID (blkid).

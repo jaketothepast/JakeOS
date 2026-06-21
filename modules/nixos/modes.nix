@@ -1,43 +1,13 @@
 { config, lib, pkgs, inputs, ... }:
 let
-  # Build an /etc/hosts blob that null-routes a list of domains (and their www.).
+  blocklist = import ./blocklist.nix;
+
+  # Null-route a list of domains (and their www.) on BOTH IPv4 and IPv6, so an
+  # AAAA lookup can't reach the real host.
   blockHosts = domains:
     lib.concatMapStringsSep "\n"
-      (d: "0.0.0.0 ${d}\n0.0.0.0 www.${d}")
+      (d: "0.0.0.0 ${d}\n0.0.0.0 www.${d}\n:: ${d}\n:: www.${d}")
       domains;
-
-  # ---- Per-mode block lists -------------------------------------------------
-  # WORK: kill the named time-sinks. Discord is personal; Reddit + LinkedIn are
-  # "work-adjacent but a time sink" per the user.
-  workBlocked = [
-    "reddit.com" "old.reddit.com" "new.reddit.com" "i.redd.it" "v.redd.it"
-    "linkedin.com"
-    "discord.com" "discordapp.com" "discord.gg"
-    "youtube.com" "news.ycombinator.com" "x.com" "twitter.com"
-  ];
-
-  # PERSONAL: no work tooling. Slack is work-only; add your employer domains here.
-  personalBlocked = [
-    "slack.com" "app.slack.com"
-    # "yourcompany.example.com"   # <- add real work domains
-    # "jira.yourcompany.com" "github.com/yourcompany"
-  ];
-
-  # ---- WORK browser allow-list (Firefox WebsiteFilter is default-DENY) -------
-  # Everything not listed is blocked IN THE BROWSER. CLIs/agents are unaffected.
-  workAllowExceptions = [
-    "*://*.github.com/*" "*://github.com/*"
-    "*://*.githubusercontent.com/*"
-    "*://*.anthropic.com/*" "*://*.claude.ai/*"
-    "*://*.openai.com/*"
-    "*://*.stackoverflow.com/*" "*://stackoverflow.com/*"
-    "*://*.google.com/*" "*://google.com/*"
-    "*://*.gitlab.com/*"
-    "*://*.npmjs.com/*" "*://*.pypi.org/*" "*://*.crates.io/*"
-    "*://*.nixos.org/*" "*://*.mozilla.org/*"
-    "*://*.focusmate.com/*"        # body-doubling (allow-listed on purpose)
-    # "*://*.yourcompany.example.com/*"   # <- add your real work domains
-  ];
 
   # Common groups for a non-privileged daily user (NOT wheel → cannot rebuild).
   dailyGroups = [ "networkmanager" "audio" "video" "input" ];
@@ -46,13 +16,15 @@ in
   # ===========================================================================
   #  Shared admin account — the ONLY account that can rebuild the system.
   #  This is the deliberate, high-friction (not impossible) "unblock" valve:
-  #  to change a block you must switch to admin, edit Nix, and rebuild.
+  #  to change a block you switch to admin, edit modules/nixos/blocklist.nix, rebuild.
+  #  Password is read from /var/lib/adhd-secrets/admin.pw (created at install).
   # ===========================================================================
   users.users.admin = {
     isNormalUser = true;
+    uid = 1000;
     description = "Administrator (rebuilds only — do not daily-drive)";
     extraGroups = [ "wheel" "networkmanager" ];
-    hashedPasswordFile = "/persist/passwords/admin";
+    hashedPasswordFile = "/var/lib/adhd-secrets/admin.pw";
   };
   nix.settings.trusted-users = [ "root" "admin" ];
   home-manager.users.admin = import ../../home/admin.nix;
@@ -69,9 +41,10 @@ in
 
     users.users.jacob-work = {
       isNormalUser = true;
+      uid = 1001;
       description = "Jacob — work";
       extraGroups = dailyGroups;
-      hashedPasswordFile = "/persist-work/passwords/jacob-work";
+      hashedPasswordFile = "/var/lib/adhd-secrets/jacob-work.pw";
     };
     home-manager.users.jacob-work = import ../../home/jacob-work.nix;
 
@@ -81,45 +54,26 @@ in
       user = "jacob-work";
     };
 
-    # Encrypted work data — unlocked ONLY in this mode (passphrase B).
+    # Encrypted work volume, mounted DIRECTLY at the work user's home and unlocked
+    # ONLY in this mode. All work data lives here → personal mode can't see it.
+    # (Single passphrase across volumes; you just don't unlock this one in personal.)
     boot.initrd.luks.devices.cryptwork = {
       device = "/dev/disk/by-uuid/REPLACE-LUKS-CRYPTWORK-UUID";
       allowDiscards = true;
     };
-    fileSystems."/persist-work" = {
+    fileSystems."/home/jacob-work" = {
       device = "/dev/mapper/cryptwork";
       fsType = "btrfs";
-      options = [ "subvol=@persist" "compress=zstd" "noatime" ];
-      neededForBoot = true;
-    };
-    environment.persistence."/persist-work" = {
-      hideMounts = true;
-      users.jacob-work = {
-        directories = [
-          "org"
-          ".ssh"
-          ".gnupg"
-          ".mozilla"                    # browser profile: 2FA/session cookies
-          ".local/share/keyrings"
-          ".config/doom"
-          ".config/gh"
-          ".local/share/doom"           # Doom built packages
-          ".local/share/emacs"
-          ".local/state/home-manager"
-          ".cargo" ".rustup" ".npm" ".cache/pip"
-          { directory = ".local/share/org-roam"; mode = "0700"; }
-          { directory = "code"; }        # work repos
-        ];
-      };
+      options = [ "compress=zstd" "noatime" ];
     };
 
-    # Block the time-sinks at the hosts layer (CLIs honor this too via resolver).
-    networking.extraHosts = blockHosts workBlocked;
+    # Block the time-sinks at the hosts layer (resolved applies this to CLIs too).
+    networking.extraHosts = blockHosts blocklist.workBlocked;
 
     # Browser is default-deny in work mode; only the allow-list gets through.
     programs.firefox.policies.WebsiteFilter = {
       Block = [ "<all_urls>" ];
-      Exceptions = workAllowExceptions;
+      Exceptions = blocklist.workAllowExceptions;
     };
   };
 
@@ -131,9 +85,10 @@ in
 
     users.users.jacob-personal = {
       isNormalUser = true;
+      uid = 1002;
       description = "Jacob — personal";
       extraGroups = dailyGroups;
-      hashedPasswordFile = "/persist-personal/passwords/jacob-personal";
+      hashedPasswordFile = "/var/lib/adhd-secrets/jacob-personal.pw";
     };
     home-manager.users.jacob-personal = import ../../home/jacob-personal.nix;
 
@@ -146,33 +101,14 @@ in
       device = "/dev/disk/by-uuid/REPLACE-LUKS-CRYPTPERSONAL-UUID";
       allowDiscards = true;
     };
-    fileSystems."/persist-personal" = {
+    fileSystems."/home/jacob-personal" = {
       device = "/dev/mapper/cryptpersonal";
       fsType = "btrfs";
-      options = [ "subvol=@persist" "compress=zstd" "noatime" ];
-      neededForBoot = true;
-    };
-    environment.persistence."/persist-personal" = {
-      hideMounts = true;
-      users.jacob-personal = {
-        directories = [
-          "org"
-          ".ssh"
-          ".gnupg"
-          ".mozilla"
-          ".local/share/keyrings"
-          ".config/doom"
-          ".local/share/doom"
-          ".local/share/emacs"
-          ".local/state/home-manager"
-          ".cache/pip"
-          { directory = ".local/share/org-roam"; mode = "0700"; }
-        ];
-      };
+      options = [ "compress=zstd" "noatime" ];
     };
 
     # Personal mode blocks work tooling/domains. No default-deny browser filter
     # here (relaxed personal browsing, minus the blocked hosts + uBlock).
-    networking.extraHosts = blockHosts personalBlocked;
+    networking.extraHosts = blockHosts blocklist.personalBlocked;
   };
 }

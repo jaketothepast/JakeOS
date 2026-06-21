@@ -2,11 +2,12 @@
   description = "ADHD-friendly NixOS: hard to do the wrong thing, easy to do the right thing";
 
   inputs = {
-    # Track unstable: niri-flake + emacs-pgtk move fast and want a recent nixpkgs.
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Stable base: a boring, reliable foundation cuts the breakage/tinkering treadmill.
+    # niri still comes from niri-flake's own package + cache, so stable nixpkgs is fine.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -15,9 +16,6 @@
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    # Wipe-on-boot root with explicit persisted paths.
-    impermanence.url = "github:nix-community/impermanence";
 
     # Secrets (API keys for the AI CLIs), mode-scoped.
     sops-nix = {
@@ -45,7 +43,6 @@
         modules = [
           inputs.home-manager.nixosModules.home-manager
           inputs.niri.nixosModules.niri
-          inputs.impermanence.nixosModules.impermanence
           inputs.sops-nix.nixosModules.sops
 
           ./hosts/adhd-desktop

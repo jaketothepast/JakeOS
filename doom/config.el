@@ -33,22 +33,15 @@
         org-outline-path-complete-in-steps nil)
 
   ;; ---- Capture: the load-bearing offload ----------------------------------
-  ;; Default "t" needs nothing but the text: hotkey → type → C-c C-c → back.
+  ;; Two templates only. The global Mod+N hotkey jumps STRAIGHT to "t" (no menu,
+  ;; no categorize-it-now decision); "n" is for a deliberate note via SPC X.
   (setq org-capture-templates
         '(("t" "Task (quick)" entry
            (file+headline "~/org/inbox.org" "Inbox")
            "* TODO %?\n%U\n" :empty-lines 1)
           ("n" "Note / brain-dump" entry
            (file+headline "~/org/inbox.org" "Inbox")
-           "* %? :note:\n%U\n" :empty-lines 1)
-          ("e" "Event" entry
-           (file+headline "~/org/calendar.org" "Events")
-           "* %?\n%^T\n" :empty-lines 1)
-          ;; Optional energy-tagged task (low-battery days → "Quick wins").
-          ("E" "Task (with energy)" entry
-           (file+headline "~/org/inbox.org" "Inbox")
-           "* TODO [#%^{Priority|A|B|C}] %^{Task}\n:PROPERTIES:\n:ENERGY: %^{Energy|Low|Medium|High}\n:END:\n%U\n"
-           :empty-lines 1)))
+           "* %? :note:\n%U\n" :empty-lines 1)))
 
   ;; org-clock: make elapsed time visible (time-blindness aid) + resume on restart.
   (setq org-clock-persist 'history
@@ -61,10 +54,11 @@
 ;;  Global capture frame (driven from the WM via `emacsclient`)
 ;; =============================================================================
 (defun my/org-capture-frame ()
-  "Run org-capture; the WM created a frame named \"doom-capture\" for us."
+  "Jump STRAIGHT to the quick-task capture — no menu, no categorize decision.
+The WM created a frame named \"doom-capture\" for us."
   (interactive)
   (require 'org-capture)
-  (org-capture))
+  (org-capture nil "t"))
 
 (defun my/delete-capture-frame (&rest _)
   "Close the dedicated capture frame once capture is finalized/aborted."
@@ -86,21 +80,18 @@
         org-agenda-skip-deadline-if-done t
         org-agenda-start-on-weekday nil)
   (org-super-agenda-mode)
+  ;; THREE groups, one screen: what's scheduled today, what to do, what to sort.
   (setq org-agenda-custom-commands
         '(("d" "ADHD Daily Dashboard"
            ((agenda "" ((org-agenda-span 'day)
                         (org-super-agenda-groups
-                         '((:name "Today" :time-grid t :date today :order 1)
-                           (:name "Due today" :deadline today :order 2)
-                           (:name "Overdue" :deadline past :order 3)))))
+                         '((:name "Today" :time-grid t :date today
+                                  :deadline today :scheduled today :order 1)
+                           (:name "Overdue" :deadline past :scheduled past :order 2)))))
             (alltodo "" ((org-agenda-overriding-header "")
                          (org-super-agenda-groups
                           '((:name "Refile me (inbox)" :file-path "inbox" :order 0)
-                            (:name "Quick wins (low energy, high impact)"
-                                   :and (:property ("ENERGY" "Low") :priority "A") :order 1)
-                            (:name "NEXT — do these" :todo "NEXT" :order 2)
-                            (:name "Important" :priority "A" :order 3)
-                            (:name "Waiting on others" :todo "WAITING" :order 8)
+                            (:name "NEXT — do these" :todo "NEXT" :order 1)
                             (:discard (:anything t)))))))))))
 
 ;; =============================================================================

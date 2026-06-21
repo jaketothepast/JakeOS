@@ -10,5 +10,4 @@
   home.stateVersion = "25.11";
 
   adhd.mode = "personal";
-  adhd.grayscaleAtLogin = false; # personal mode keeps color
 }

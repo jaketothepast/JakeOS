@@ -16,7 +16,8 @@ mixing work into downtime) takes a reboot and an admin-only `nixos-rebuild`.
 |------|------------|
 | `flake.nix` | Inputs + the `adhd-desktop` system |
 | `hosts/adhd-desktop/` | Host entry + (placeholder) hardware config |
-| `modules/nixos/` | System modules: boot, desktop (niri+X), impermanence, enforcement, modes, ollama |
+| `modules/nixos/` | System modules: base, boot, desktop (niri+X), enforcement, modes, ollama |
+| `modules/nixos/blocklist.nix` | The one list you edit (as admin) to block/unblock sites |
 | `modules/home-manager/` | User dotfiles: shared + per-mode (work/personal) |
 | `home/` | Per-user home-manager entrypoints |
 | `doom/` | Doom Emacs config (close to stock; org + org-roam dailies) |
@@ -25,11 +26,11 @@ mixing work into downtime) takes a reboot and an admin-only `nixos-rebuild`.
 
 ## Two modes
 
-Boot-selectable, strictly isolated (separate users + separate LUKS-encrypted
-`/persist`). Switching = reboot → pick the boot entry → mode passphrase.
+Boot-selectable, strictly isolated (separate users + separate LUKS-encrypted home
+volumes). Switching = reboot → pick the boot entry → disk passphrase.
 
-- **work** — dev tooling, Slack; Discord / Reddit / LinkedIn blocked; grayscale + strict DNS schedule.
-- **personal** — Discord; Slack and work data absent; relaxed.
+- **work** — dev tooling, Slack; Discord / Reddit / LinkedIn blocked; default-deny browser allowlist.
+- **personal** — Discord; Slack and work data absent (work volume not mounted); relaxed.
 
 ## Quick start (fresh machine)
 
@@ -44,6 +45,6 @@ Only the `admin` user can rebuild — by design:
 ```sh
 # as admin
 cd /etc/nixos        # (or wherever this repo lives)
-$EDITOR modules/nixos/enforcement.nix
+$EDITOR modules/nixos/blocklist.nix   # add/remove a domain
 sudo nixos-rebuild switch --flake .#adhd-desktop
 ```

@@ -15,7 +15,5 @@
   #   port = 8080;
   # };
 
-  # Persist downloaded models across the wipe-on-boot root. (Verify ownership of
-  # /var/lib/ollama matches the ollama service user after first switch.)
-  environment.persistence."/persist".directories = [ "/var/lib/ollama" ];
+  # Models live in /var/lib/ollama on the persistent root — no extra wiring needed.
 }

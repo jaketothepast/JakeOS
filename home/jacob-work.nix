@@ -9,7 +9,5 @@
   home.homeDirectory = "/home/jacob-work";
   home.stateVersion = "25.11";
 
-  # Surface the ADHD/focus toggles for this mode.
   adhd.mode = "work";
-  adhd.grayscaleAtLogin = true; # work mode starts desaturated
 }

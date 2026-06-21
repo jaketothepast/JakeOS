@@ -1,12 +1,15 @@
 { config, lib, pkgs, ... }:
 {
   # ===========================================================================
-  #  ENFORCEMENT — baseline, always-on (both modes). Per-mode deltas live in
-  #  modes.nix (extraHosts + Firefox WebsiteFilter). Network model:
+  #  ENFORCEMENT — baseline, always-on (both modes). Per-mode host/allow deltas
+  #  live in modes.nix. Network model:
   #    * Egress is default-OPEN  → CLIs / AI agents / dev tooling reach anything.
-  #    * The BROWSER is the locked-down vector (Firefox policy + WebsiteFilter).
-  #    * DNS blocking (hosts + AdGuard) covers everything, browser and CLI alike.
-  #    * nftables ONLY prevents DNS bypass (DoH/DoT) — it does NOT domain-filter.
+  #    * Domain blocking = /etc/hosts, applied to EVERYTHING by systemd-resolved
+  #      (and libc nss) — browser and CLI alike. Immutable: /etc/hosts is a
+  #      read-only store symlink and the daily user isn't in `wheel`.
+  #    * The browser (main distraction vector) is further locked via Firefox policy.
+  #    * A slim nftables rule forces all DNS to the local resolver and kills
+  #      DoH/DoT, so terminal alternate-resolver tricks (dig @8.8.8.8, DoH) fail.
   # ===========================================================================
 
   # ---- /etc/hosts baseline blocklist (StevenBlack) --------------------------
@@ -15,67 +18,21 @@
     block = [ "fakenews" "gambling" "porn" "social" ];
   };
 
-  # ===========================================================================
-  #  AdGuard Home as the single system resolver.
-  # ===========================================================================
-  # Free port 53 for AdGuard by turning off resolved's stub listener.
-  services.resolved.enable = false;
-  networking.nameservers = [ "127.0.0.1" ];
-  networking.networkmanager.dns = "none"; # NM must not overwrite resolv.conf
-
-  services.adguardhome = {
-    enable = true;
-    # Declared config is authoritative — UI tweaks don't silently override it,
-    # and they don't survive a reboot. This is intentional (no soft escape).
-    mutableSettings = false;
-    # Web UI bind (the module injects these into http.address).
-    host = "127.0.0.1";
-    port = 3000;
-    settings = {
-      dns = {
-        bind_hosts = [ "127.0.0.1" ];
-        port = 53;
-        # AdGuard's own upstream is allow-listed in nftables (by destination IP),
-        # so plain-DNS upstream works even though everything else is forced to :53.
-        upstream_dns = [ "9.9.9.9" "1.1.1.1" ];
-        bootstrap_dns = [ "9.9.9.9" "1.1.1.1" ];
-      };
-      filtering = {
-        protection_enabled = true;
-        filtering_enabled = true;
-        # NOTE: the DoH "canary" (use-application-dns.net) is intentionally NOT
-        # handled here — the locked Firefox `DNSOverHTTPS { Locked = true; }`
-        # policy below is the real control, so a rewrite would be redundant.
-      };
-      # Ad/tracker/malware lists. Social/time-sink blocking is per-mode via hosts.
-      filters = [
-        {
-          enabled = true;
-          name = "AdGuard DNS filter";
-          id = 1;
-          url = "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt";
-        }
-        {
-          enabled = true;
-          name = "AdAway";
-          id = 2;
-          url = "https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt";
-        }
-      ];
-    };
-  };
+  # ---- Local resolver: systemd-resolved reads /etc/hosts and answers 0.0.0.0
+  #      for blocked domains, for every app that uses it.
+  services.resolved.enable = true;
 
   # ===========================================================================
-  #  nftables — anti-DNS-bypass ONLY (kill DoH/DoT, force plain DNS to AdGuard).
-  #  Does NOT filter by domain (IPs churn) and does NOT restrict CLI egress.
+  #  nftables — DNS lockdown ONLY (no domain filtering, no CLI egress limits).
+  #  Forces plaintext DNS to the local resolver; blocks DoH/DoT.
   # ===========================================================================
   networking.nftables = {
     enable = true;
     tables.dns_lockdown = {
       family = "inet";
       content = ''
-        # Seed of well-known DoH provider IPs. Expand via a timer that pulls
-        # github.com/dibdot/DoH-IP-blocklists into these sets (see MANUAL).
+        # Well-known DoH provider IPs (v4 + v6). (Optionally expand from
+        # github.com/dibdot/DoH-IP-blocklists via a timer.)
         set doh4 {
           type ipv4_addr
           flags interval
@@ -86,29 +43,38 @@
             94.140.14.14, 94.140.15.15
           }
         }
+        set doh6 {
+          type ipv6_addr
+          flags interval
+          elements = {
+            2606:4700:4700::1111, 2606:4700:4700::1001,
+            2001:4860:4860::8888, 2001:4860:4860::8844,
+            2620:fe::fe, 2620:fe::9,
+            2a10:50c0::ad1:ff, 2a10:50c0::ad2:ff
+          }
+        }
 
         chain output {
           type filter hook output priority 0; policy accept;
 
-          # Allow AdGuard's plain-DNS upstreams (it forwards here). Matching by
-          # destination IP avoids depending on the service's (possibly dynamic)
-          # uid name. DoH/DoT to these same IPs is still rejected below.
-          ip daddr { 9.9.9.9, 1.1.1.1 } udp dport 53 accept
-          ip daddr { 9.9.9.9, 1.1.1.1 } tcp dport 53 accept
+          # systemd-resolved's own upstream queries are allowed (static user).
+          meta skuid "systemd-resolve" accept
 
-          # No DNS-over-TLS anywhere.
+          # No DNS-over-TLS.
           tcp dport 853 reject
 
-          # No DNS-over-HTTPS to known resolvers.
-          ip daddr @doh4 tcp dport 443 reject
+          # No DNS-over-HTTPS to known resolvers (TCP/443 and HTTP/3 over UDP/443,
+          # IPv4 and IPv6).
+          ip  daddr @doh4 tcp dport 443 reject
+          ip  daddr @doh4 udp dport 443 reject
+          ip6 daddr @doh6 tcp dport 443 reject
+          ip6 daddr @doh6 udp dport 443 reject
 
-          # Any other plain DNS must go to the local AdGuard resolver (IPv4 + IPv6).
-          udp dport 53 ip daddr != 127.0.0.1 reject
-          tcp dport 53 ip daddr != 127.0.0.1 reject
+          # All other plaintext DNS must stay on the local resolver (loopback).
+          udp dport 53 ip daddr != 127.0.0.0/8 reject
+          tcp dport 53 ip daddr != 127.0.0.0/8 reject
           udp dport 53 ip6 daddr != ::1 reject
           tcp dport 53 ip6 daddr != ::1 reject
-          # (IPv6 DoH to brand-new endpoints remains a known gap — expand doh sets
-          #  with an ip6 set from dibdot/DoH-IP-blocklists if you want to close it.)
         }
       '';
     };
@@ -130,7 +96,7 @@
         SponsoredSuggestions = false;
         ImproveSuggest = false;
       };
-      # Kill DoH so the browser can't bypass the hosts/AdGuard layer.
+      # Kill DoH so the browser can't bypass the /etc/hosts layer.
       DNSOverHTTPS = {
         Enabled = false;
         Locked = true;

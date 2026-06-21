@@ -13,33 +13,15 @@ let
       -e '(my/org-capture-frame)'
   '';
 
-  # Toggle Do-Not-Disturb (dunst paused = notifications batched, replayed later).
-  focus-dnd = pkgs.writeShellScriptBin "focus-dnd" ''
+  # Focus toggle = Do-Not-Disturb on/off (dunst paused = notifications batched,
+  # replayed later). One key for "I'm focusing now" and "I'm back".
+  focus-toggle = pkgs.writeShellScriptBin "focus-toggle" ''
     ${pkgs.dunst}/bin/dunstctl set-paused toggle
-    state=$(${pkgs.dunst}/bin/dunstctl is-paused)
-    ${pkgs.libnotify}/bin/notify-send "DND: $state" 2>/dev/null || true
-  '';
-
-  # Grayscale: niri has NO native desaturation shader (unlike Hyprland/hyprshade).
-  # This is an honest stub. Options to wire in on your hardware: a monitor "mono"
-  # mode via ddcutil, or a GPU/OS accessibility grayscale. Kept as a no-op toggle
-  # so the keybind exists and the focus script doesn't fail.
-  focus-grayscale = pkgs.writeShellScriptBin "focus-grayscale" ''
-    echo "grayscale $1 (stub — niri has no native grayscale shader; see common.nix)"
-  '';
-
-  # Start/stop a focus block: DND on + grayscale on, and back. Pomodoro length is
-  # yours to set (research says don't dogmatically use 25 min) — gnome-pomodoro
-  # provides the timer UI; this just flips the environment.
-  focus-start = pkgs.writeShellScriptBin "focus-start" ''
-    ${pkgs.dunst}/bin/dunstctl set-paused true
-    ${focus-grayscale}/bin/focus-grayscale on
-    ${pkgs.libnotify}/bin/notify-send "Focus block started" "DND on. One thing." 2>/dev/null || true
-  '';
-  focus-stop = pkgs.writeShellScriptBin "focus-stop" ''
-    ${pkgs.dunst}/bin/dunstctl set-paused false
-    ${focus-grayscale}/bin/focus-grayscale off
-    ${pkgs.libnotify}/bin/notify-send "Focus block ended" "Notifications back." 2>/dev/null || true
+    if [ "$(${pkgs.dunst}/bin/dunstctl is-paused)" = "true" ]; then
+      ${pkgs.libnotify}/bin/notify-send "Focus on" "Notifications paused. One thing." 2>/dev/null || true
+    else
+      ${pkgs.libnotify}/bin/notify-send "Focus off" "Notifications back." 2>/dev/null || true
+    fi
   '';
 in
 {
@@ -47,11 +29,6 @@ in
     mode = lib.mkOption {
       type = lib.types.enum [ "work" "personal" ];
       description = "Which mode this home profile is for.";
-    };
-    grayscaleAtLogin = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Desaturate the screen on login (work mode).";
     };
   };
 
@@ -119,9 +96,8 @@ in
       aiAgents.opencode
       pi
 
-      # Focus / capture tooling
-      org-capture-frame focus-dnd focus-grayscale focus-start focus-stop
-      gnome-pomodoro
+      # Focus / capture tooling (pomodoro is org-pomodoro inside Doom, not a separate app)
+      org-capture-frame focus-toggle
       libnotify
 
       # Desktop bits used by the niri config
@@ -222,7 +198,6 @@ in
       spawn-at-startup "sh" "-c" "xwayland-satellite || true"
       // Open the daily agenda first — the first thing you see is "what's next".
       spawn-at-startup "sh" "-c" "sleep 3; ${pkgs.emacs-pgtk}/bin/emacsclient -a emacs -c -e '(org-agenda nil \"d\")'"
-      ${lib.optionalString config.adhd.grayscaleAtLogin ''spawn-at-startup "focus-grayscale" "on"''}
 
       environment {
           DISPLAY ":0"   // for Xwayland-satellite clients
@@ -231,33 +206,40 @@ in
 
       prefer-no-csd
 
+      // ── The 5 you actually use all day ──────────────────────────────────
       binds {
-          "Mod+Return"      { spawn "kitty"; }
-          "Mod+D"           { spawn "fuzzel"; }
           "Mod+N"           { spawn "org-capture-frame"; }   // 2-second capture
-          "Mod+Shift+D"     { spawn "focus-dnd"; }           // toggle DND
-          "Mod+Shift+F"     { spawn "focus-start"; }         // begin focus block
-          "Mod+Shift+G"     { spawn "focus-stop"; }          // end focus block
-          "Mod+Q"           { close-window; }
-          "Mod+F"           { maximize-column; }
-          "Mod+Left"        { focus-column-left; }
-          "Mod+Right"       { focus-column-right; }
+          "Mod+Return"      { spawn "kitty"; }               // terminal
+          "Mod+D"           { spawn "fuzzel"; }              // launcher
+          "Mod+Q"           { close-window; }                // close window
+          "Mod+Shift+F"     { spawn "focus-toggle"; }        // focus on/off (DND)
+
+          // ── Moving around (niri = windows sit side-by-side in a row) ──────
+          "Mod+Left"        { focus-column-left; }           // previous window
+          "Mod+Right"       { focus-column-right; }          // next window
+          "Mod+O"           { toggle-overview; }             // zoom out, see everything
+          "Mod+F"           { maximize-column; }             // (un)maximize current
+
+          // ── Workspaces: fixed homes for tasks (e.g. 1=code, 2=comms) ─────
           "Mod+1"           { focus-workspace 1; }
           "Mod+2"           { focus-workspace 2; }
           "Mod+3"           { focus-workspace 3; }
-          "Mod+Shift+1"     { move-column-to-workspace 1; }
+          "Mod+Shift+1"     { move-column-to-workspace 1; }  // send window → ws 1
           "Mod+Shift+2"     { move-column-to-workspace 2; }
           "Mod+Shift+3"     { move-column-to-workspace 3; }
-          "Mod+Shift+Slash" { show-hotkey-overlay; }
-          "Mod+Shift+E"     { quit; }
+
+          "Mod+Shift+Slash" { show-hotkey-overlay; }         // "what are the keys?"
+          "Mod+Shift+E"     { quit; }                        // log out of niri
+
           "XF86AudioRaiseVolume" { spawn "sh" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"; }
           "XF86AudioLowerVolume" { spawn "sh" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
+          "XF86AudioMute"        { spawn "sh" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
       }
     '';
 
     # =========================================================================
-    #  waybar — minimal: clock + current org task + pomodoro. Nothing clickable
-    #  that invites wandering.
+    #  waybar — TWO elements only: current org task + clock. No tray, no
+    #  workspaces — nothing clickable that invites wandering.
     # =========================================================================
     programs.waybar = {
       enable = true;
@@ -265,9 +247,9 @@ in
         layer = "top";
         position = "top";
         height = 28;
-        modules-left = [ "niri/workspaces" ];
+        modules-left = [ ];
         modules-center = [ "custom/orgclock" ];
-        modules-right = [ "tray" "clock" ];
+        modules-right = [ "clock" ];
         "custom/orgclock" = {
           # Shows the currently-clocked org task (time-blindness + focus anchor).
           exec = "${pkgs.emacs-pgtk}/bin/emacsclient -e '(if (org-clocking-p) (org-clock-get-clock-string) \"--\")' 2>/dev/null | sed 's/^\"//; s/\"$//'";
@@ -282,7 +264,7 @@ in
       style = ''
         * { font-family: "JetBrainsMono Nerd Font"; font-size: 12px; }
         window#waybar { background: #1e1e2e; color: #cdd6f4; }
-        #clock, #custom-orgclock, #tray { padding: 0 10px; }
+        #clock, #custom-orgclock { padding: 0 10px; }
       '';
     };
   };
