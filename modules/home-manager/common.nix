@@ -130,23 +130,31 @@ in
     systemd.user.services.doom-sync = {
       Unit = {
         Description = "Clone (if needed) and sync Doom Emacs";
-        After = [ "network-online.target" ];
-        Wants = [ "network-online.target" ];
+        # NOTE: do NOT depend on network-online.target — in a *user* session it
+        # often never activates, which silently prevented this from running. We
+        # wait for the network inside the script instead.
         Before = [ "emacs.service" ];
       };
       Service = {
         Type = "oneshot";
         RemainAfterExit = true;
         Environment = [
-          "PATH=${lib.makeBinPath [ pkgs.git pkgs.emacs-pgtk pkgs.ripgrep pkgs.fd pkgs.coreutils pkgs.gnutar pkgs.gzip pkgs.openssh ]}"
+          "PATH=${lib.makeBinPath [ pkgs.git pkgs.emacs-pgtk pkgs.ripgrep pkgs.fd pkgs.coreutils pkgs.gnutar pkgs.gzip pkgs.openssh pkgs.curl ]}"
           "DOOMDIR=%h/.config/doom"
         ];
         ExecStart = pkgs.writeShellScript "doom-sync" ''
-          set -eu
+          set -u
           EMACSDIR="$HOME/.config/emacs"
-          if [ ! -d "$EMACSDIR/.git" ]; then
-            git clone --depth=1 https://github.com/doomemacs/doomemacs "$EMACSDIR"
-            "$EMACSDIR/bin/doom" install --no-config --no-env --force
+          # Wait up to ~60s for the network to come up (wifi after autologin).
+          for _ in $(seq 1 30); do
+            curl -sf -o /dev/null --max-time 5 https://github.com && break
+            sleep 2
+          done
+          # (Re)install Doom if the launcher isn't present.
+          if [ ! -x "$EMACSDIR/bin/doom" ]; then
+            rm -rf "$EMACSDIR"
+            git clone --depth=1 https://github.com/doomemacs/doomemacs "$EMACSDIR" || exit 1
+            "$EMACSDIR/bin/doom" install --no-config --no-env --force || exit 1
           fi
           "$EMACSDIR/bin/doom" sync
         '';

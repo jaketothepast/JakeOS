@@ -25,6 +25,7 @@
     "*://*.github.com/*" "*://github.com/*"
     "*://*.githubusercontent.com/*"
     "*://*.anthropic.com/*" "*://*.claude.ai/*" "*://claude.ai/*"
+    "*://*.claude.com/*" "*://claude.com/*"
     "*://challenges.cloudflare.com/*"   # Cloudflare Turnstile — claude.ai login bot-check
     "*://*.cloudflareinsights.com/*"
     "*://*.gstatic.com/*" "*://*.googleapis.com/*"   # fonts / static assets used at login
