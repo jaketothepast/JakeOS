@@ -127,6 +127,11 @@ in
     # Tracked Doom config → ~/.config/doom (read-only symlink; Doom reads it).
     xdg.configFile."doom".source = ../../doom;
 
+    # org-roam crashes the Emacs daemon on startup if ~/org/roam doesn't exist
+    # (file-missing -> doom-after-init-hook fails -> daemon exits -> restart loop).
+    # Ensure the org + roam dirs exist on a fresh home.
+    home.file."org/roam/.keep".text = "";
+
     # Doom itself is cloned imperatively and synced by a systemd USER oneshot
     # (NOT a home-manager activation script — activation has an empty PATH and no
     # network ordering). The Emacs daemon waits for this to finish.
