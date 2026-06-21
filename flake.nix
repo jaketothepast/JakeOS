@@ -30,10 +30,10 @@
     };
 
     # Auto-updated packages for the AI coding agents (claude-code, codex, opencode, ...).
-    llm-agents = {
-      url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Intentionally does NOT follow our nixpkgs — these fast-moving tools need newer
+    # deps (e.g. pnpm_11) than stable 25.11 ships. It brings its own pinned nixpkgs;
+    # the resulting binaries don't need to match our system nixpkgs.
+    llm-agents.url = "github:numtide/llm-agents.nix";
   };
 
   outputs =
