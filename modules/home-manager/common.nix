@@ -179,16 +179,26 @@ in
     # =========================================================================
     xdg.configFile."niri/config.kdl".text = ''
       // ADHD niri config — minimal, keyboard-driven, one-thing-at-a-time.
+      // niri 25.08 uses KDL v2 — nested nodes must be multi-line, not inline.
       input {
-          keyboard { xkb { layout "us" } }
+          keyboard {
+              xkb {
+                  layout "us"
+              }
+          }
           focus-follows-mouse max-scroll-amount="0%"
       }
 
       layout {
           gaps 12
           center-focused-column "never"
-          default-column-width { proportion 1.0; }   // new windows take full column → monotasking
-          focus-ring { width 2; }
+          // new windows take the full column → monotasking
+          default-column-width {
+              proportion 1.0
+          }
+          focus-ring {
+              width 2
+          }
       }
 
       // Startup: notifications paused, bar up, Xwayland bridge, agenda first.
