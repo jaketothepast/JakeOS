@@ -166,6 +166,10 @@ in
     };
     # Ensure the daemon starts after a sync.
     systemd.user.services.emacs.Unit.After = [ "doom-sync.service" ];
+    # Doom's first-load compilation can exceed systemd's default 90s start
+    # timeout, which caused a kill/restart loop (stock-looking Emacs that never
+    # finishes). Let the daemon take as long as it needs on first boot.
+    systemd.user.services.emacs.Service.TimeoutStartSec = lib.mkForce "infinity";
 
     # =========================================================================
     #  Notifications — default to DND/paused (batched, replayed on demand)
