@@ -17,6 +17,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Declarative disk partitioning (automates install — no manual fdisk/cryptsetup).
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Secrets (API keys for the AI CLIs), mode-scoped.
     sops-nix = {
       url = "github:Mic92/sops-nix";
@@ -43,6 +49,7 @@
         modules = [
           inputs.home-manager.nixosModules.home-manager
           inputs.niri.nixosModules.niri
+          inputs.disko.nixosModules.disko
           inputs.sops-nix.nixosModules.sops
 
           ./hosts/adhd-desktop

@@ -54,18 +54,16 @@ in
       user = "jacob-work";
     };
 
-    # Encrypted work volume, mounted DIRECTLY at the work user's home and unlocked
-    # ONLY in this mode. All work data lives here → personal mode can't see it.
-    # (Single passphrase across volumes; you just don't unlock this one in personal.)
-    boot.initrd.luks.devices.cryptwork = {
-      device = "/dev/disk/by-uuid/REPLACE-LUKS-CRYPTWORK-UUID";
-      allowDiscards = true;
-    };
+    # Work home = the @home-work btrfs subvolume (created by disko), mounted ONLY
+    # in this mode. Personal mode never mounts it; daily users aren't root, so they
+    # can't mount it either → no work data on a reachable path in personal.
     fileSystems."/home/jacob-work" = {
-      device = "/dev/mapper/cryptwork";
+      device = "/dev/mapper/cryptroot";
       fsType = "btrfs";
-      options = [ "compress=zstd" "noatime" ];
+      options = [ "subvol=@home-work" "compress=zstd" "noatime" ];
     };
+    # Own the freshly-mounted subvolume root so the user can write their home.
+    systemd.tmpfiles.rules = [ "d /home/jacob-work 0700 jacob-work users - -" ];
 
     # Block the time-sinks at the hosts layer (resolved applies this to CLIs too).
     networking.extraHosts = blockHosts blocklist.workBlocked;
@@ -97,15 +95,12 @@ in
       user = "jacob-personal";
     };
 
-    boot.initrd.luks.devices.cryptpersonal = {
-      device = "/dev/disk/by-uuid/REPLACE-LUKS-CRYPTPERSONAL-UUID";
-      allowDiscards = true;
-    };
     fileSystems."/home/jacob-personal" = {
-      device = "/dev/mapper/cryptpersonal";
+      device = "/dev/mapper/cryptroot";
       fsType = "btrfs";
-      options = [ "compress=zstd" "noatime" ];
+      options = [ "subvol=@home-personal" "compress=zstd" "noatime" ];
     };
+    systemd.tmpfiles.rules = [ "d /home/jacob-personal 0700 jacob-personal users - -" ];
 
     # Personal mode blocks work tooling/domains. No default-deny browser filter
     # here (relaxed personal browsing, minus the blocked hosts + uBlock).

@@ -44,9 +44,11 @@ distraction takes an admin-only rebuild. That asymmetry is the design.
 
 ## 3. The two modes
 
-Boot-selectable and **strictly isolated** — separate Linux users, separate
-LUKS-encrypted home volumes. Personal mode never mounts the work volume and never
-installs work apps.
+Boot-selectable and **isolated in daily use** — separate Linux users; the work and
+personal homes are **mount-isolated btrfs subvolumes inside one LUKS** (not
+cryptographically separated — `root`/`admin` could mount either). Personal mode never
+mounts the work home and never installs work apps, and your daily user isn't `root`,
+so it can't reach the other mode's home.
 
 | | **work** | **personal** |
 |---|---|---|
@@ -54,11 +56,12 @@ installs work apps.
 | Apps | Slack, dev toolchain | Discord, mpv |
 | Blocked | Reddit, LinkedIn, Discord, YouTube, X, HN | Slack + your work domains |
 | Browser | default-deny allowlist (only work domains) | relaxed (minus blocked hosts) |
-| Home | `cryptwork` → `/home/jacob-work` | `cryptpersonal` → `/home/jacob-personal` |
+| Home | `@home-work` subvol → `/home/jacob-work` | `@home-personal` subvol → `/home/jacob-personal` |
 
 **Switching modes = reboot** → pick the entry in the boot menu → type the disk
-passphrase. (One passphrase unlocks the system; each mode only *mounts* its own home
-volume.) The reboot is deliberate friction so you don't hop into "personal" mid-workday.
+passphrase (one LUKS for the whole system). Each mode only *mounts* its own home
+subvolume; the daily user isn't root, so it can't reach the other mode's home. The
+reboot is deliberate friction so you don't hop into "personal" mid-workday.
 
 The **plain (untagged) boot entry** is the **admin recovery** entry.
 
@@ -188,28 +191,18 @@ impermanence). Your home lives on the encrypted mode volume
 
 ## 10. Install (first time)
 
-> **Full copy-pasteable walkthrough: [`docs/INSTALL.md`](INSTALL.md).** The summary:
+> **Full copy-pasteable walkthrough: [`docs/INSTALL.md`](INSTALL.md).** Partitioning
+> is declarative (disko) — no manual fdisk/cryptsetup/UUIDs. The summary:
 
-1. Boot the NixOS ISO. Partition:
-   - ESP (vfat) → `/boot`.
-   - `cryptroot` LUKS → btrfs subvolumes `@root` (→ `/`) and `@nix` (→ `/nix`).
-   - `cryptwork` and `cryptpersonal` LUKS volumes (btrfs) for the two home dirs.
-   - **Use the same passphrase for all three** (simplest; isolation comes from only
-     mounting each in its mode).
-2. `nixos-generate-config --root /mnt --no-filesystems`; merge the generated kernel
-   modules into `hosts/adhd-desktop/hardware-configuration.nix`, and fill the real
-   LUKS/ESP UUIDs (`blkid`) there and in `modules/nixos/modes.nix`.
-3. `nixos-install --flake .#adhd-desktop`.
-4. Create the password hash files (immutable declarative users read these):
-   ```sh
-   mkdir -p /mnt/var/lib/adhd-secrets
-   mkpasswd -m sha-512 | tee /mnt/var/lib/adhd-secrets/admin.pw
-   mkpasswd -m sha-512 | tee /mnt/var/lib/adhd-secrets/jacob-work.pw
-   mkpasswd -m sha-512 | tee /mnt/var/lib/adhd-secrets/jacob-personal.pw
-   chmod 600 /mnt/var/lib/adhd-secrets/*.pw
-   ```
-5. Reboot, pick a mode, type the passphrase. First login runs `doom-sync` (clones +
-   builds Doom) — give it a few minutes.
+1. Boot the NixOS ISO, get online, `git clone` this repo.
+2. Set your disk in `modules/nixos/disko.nix` (`device = "/dev/…"`).
+3. `echo -n 'passphrase' > /tmp/secret.key`, then
+   `sudo nix run github:nix-community/disko -- --mode destroy,format,mount --flake .#adhd-desktop`
+   (partitions + formats + mounts to `/mnt`).
+4. `cp -r` the repo to `/mnt/etc/nixos`; create the `mkpasswd` hash files in
+   `/mnt/var/lib/adhd-secrets/`.
+5. `nixos-install --flake /mnt/etc/nixos#adhd-desktop --no-root-passwd`, reboot, pick
+   a mode. First login runs `doom-sync` — give it a few minutes.
 
 > Reproducibility: commit a `flake.lock` (`nix flake lock`) so "stable 25.11" is
 > pinned to exact revisions.
