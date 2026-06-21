@@ -16,4 +16,9 @@
   # from hashed files under /var/lib/adhd-secrets created once at install (see
   # docs/MANUAL.md §10) — not from the world-readable Nix store.
   users.mutableUsers = false;
+
+  # git must be on the system PATH so `nixos-rebuild --flake /etc/nixos` can read
+  # the flake (it's a git working tree). Without it, rebuilds fail with
+  # "executing 'git': No such file or directory".
+  environment.systemPackages = [ pkgs.git ];
 }
