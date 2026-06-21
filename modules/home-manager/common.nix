@@ -119,6 +119,9 @@ in
     services.emacs = {
       enable = true;
       defaultEditor = true;
+      # Force the daemon to use Doom's dir even if a stray ~/.emacs.d exists
+      # (Emacs otherwise prefers ~/.emacs.d, which shadows Doom -> stock Emacs).
+      extraOptions = [ "--init-directory=${config.home.homeDirectory}/.config/emacs" ];
     };
 
     # Tracked Doom config → ~/.config/doom (read-only symlink; Doom reads it).
