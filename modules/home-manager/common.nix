@@ -27,7 +27,8 @@ in
 {
   options.adhd = {
     mode = lib.mkOption {
-      type = lib.types.enum [ "work" "personal" ];
+      type = lib.types.enum [ "work" "personal" "admin" ];
+      default = "admin";
       description = "Which mode this home profile is for.";
     };
   };

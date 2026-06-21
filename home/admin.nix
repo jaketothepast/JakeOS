@@ -1,19 +1,14 @@
-{ pkgs, ... }:
+{ ... }:
 {
-  # The admin account exists to rebuild the system, not to live in. Keep it lean:
-  # a shell, an editor, git, and the niri/terminal basics to run nixos-rebuild.
+  # admin is the rebuild/recovery account — but it still needs a usable desktop
+  # (niri keybinds, terminal, launcher), so it shares the common config.
+  imports = [
+    ../modules/home-manager/common.nix
+  ];
+
   home.username = "admin";
   home.homeDirectory = "/home/admin";
   home.stateVersion = "25.11";
 
-  programs.home-manager.enable = true;
-  programs.git.enable = true;
-  programs.zsh.enable = true;
-  programs.starship.enable = true;
-
-  home.packages = with pkgs; [
-    vim
-    git
-    kitty
-  ];
+  adhd.mode = "admin";
 }
