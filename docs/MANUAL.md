@@ -188,6 +188,8 @@ impermanence). Your home lives on the encrypted mode volume
 
 ## 10. Install (first time)
 
+> **Full copy-pasteable walkthrough: [`docs/INSTALL.md`](INSTALL.md).** The summary:
+
 1. Boot the NixOS ISO. Partition:
    - ESP (vfat) → `/boot`.
    - `cryptroot` LUKS → btrfs subvolumes `@root` (→ `/`) and `@nix` (→ `/nix`).

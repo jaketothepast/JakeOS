@@ -34,9 +34,10 @@ volumes). Switching = reboot → pick the boot entry → disk passphrase.
 
 ## Quick start (fresh machine)
 
-See `docs/MANUAL.md → Install`. In short: partition (btrfs subvols + LUKS),
-`nixos-generate-config`, merge into `hosts/adhd-desktop/hardware-configuration.nix`,
-then `nixos-install --flake .#adhd-desktop`.
+Full step-by-step: **[`docs/INSTALL.md`](docs/INSTALL.md)**. In short: partition
+(ESP + 3 LUKS volumes), btrfs subvols, fill UUIDs in `hardware-configuration.nix` +
+`modes.nix`, create `/var/lib/adhd-secrets/*.pw`, then
+`nixos-install --flake .#adhd-desktop`.
 
 ## Building changes (the "unblock" path)
 
