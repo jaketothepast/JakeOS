@@ -24,7 +24,10 @@
   workAllowExceptions = [
     "*://*.github.com/*" "*://github.com/*"
     "*://*.githubusercontent.com/*"
-    "*://*.anthropic.com/*" "*://*.claude.ai/*"
+    "*://*.anthropic.com/*" "*://*.claude.ai/*" "*://claude.ai/*"
+    "*://challenges.cloudflare.com/*"   # Cloudflare Turnstile — claude.ai login bot-check
+    "*://*.cloudflareinsights.com/*"
+    "*://*.gstatic.com/*" "*://*.googleapis.com/*"   # fonts / static assets used at login
     "*://*.openai.com/*"
     "*://*.stackoverflow.com/*" "*://stackoverflow.com/*"
     "*://*.google.com/*" "*://google.com/*"
