@@ -125,3 +125,43 @@ The WM created a frame named \"doom-capture\" for us."
         org-pomodoro-long-break-length 20
         org-pomodoro-audio-player "paplay"
         org-pomodoro-finished-sound-p t))
+
+;; =============================================================================
+;;  CodeTutor — read-only "learn while you code" tutor, on the Fireworks backend
+;; =============================================================================
+;; Fireworks is the REMOTE backend: it sends gathered project context (files,
+;; diffs, open buffers) to api.fireworks.ai, so it must be chosen explicitly —
+;; `auto' never picks it. The agentic loop uses read-only, project-root-sandboxed
+;; tools (curl + rg, both already installed).
+;;
+;; BACKEND — pick at load time: if a Fireworks key is in the environment use the
+;; remote Fireworks backend, otherwise fall back to the local read-only `codex'
+;; CLI. (Both `codex' and `pi' are installed; `codex' is the chosen fallback.)
+;;
+;; CAVEAT: this runs in the Emacs *daemon*, which is started by systemd --user.
+;; It only sees FIREWORKS_API_KEY if that var is in the systemd user environment
+;; at startup — NOT vars exported in an interactive shell rc. See notes below.
+;;
+;; API KEY — never set codetutor-fireworks-api-key here, and never put the key in
+;; home.sessionVariables: this config is deployed to the WORLD-READABLE /nix/store.
+;; Leave it nil; the package then reads $FIREWORKS_API_KEY, then auth-source. Put
+;; the key in ~/.authinfo.gpg (encrypted, in your home, NOT Nix-tracked):
+;;     machine api.fireworks.ai password fw_...
+(use-package! codetutor
+  :commands (codetutor-open
+             codetutor-what-next
+             codetutor-ask
+             codetutor-follow-up
+             codetutor-refresh-architecture-memory
+             codetutor-new-spec
+             codetutor-open-spec
+             codetutor-scratch
+             codetutor-inline-tips)
+  :init
+  (setq codetutor-backend (if (getenv "FIREWORKS_API_KEY") 'fireworks 'codex)
+        codetutor-fireworks-api-key nil    ; nil → $FIREWORKS_API_KEY, then auth-source
+        codetutor-open-on-enable nil
+        codetutor-start-session-on-open t
+        codetutor-review-on-save t)
+  :config
+  (codetutor-mode 1))
