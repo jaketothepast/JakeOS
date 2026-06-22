@@ -264,6 +264,7 @@ in
           "Mod+D"           { spawn "fuzzel"; }              // launcher
           "Mod+Q"           { close-window; }                // close window
           "Mod+Shift+F"     { spawn "focus-toggle"; }        // focus on/off (DND)
+          "Mod+L"           { spawn "swaylock"; }            // lock the screen
 
           // ── Moving around (niri = windows sit side-by-side in a row) ──────
           "Mod+Left"        { focus-column-left; }           // previous window

@@ -18,7 +18,13 @@
     # is added — the waybar stays minimal. Use it to scan/join Wi-Fi and edit
     # connections without dropping to nmtui.
     networkmanagerapplet
+    # Screen locker (ext-session-lock client; niri binds Mod+L to it).
+    swaylock
   ];
+
+  # swaylock authenticates via PAM — WITHOUT this service it accepts the password
+  # but can never unlock (locks you out until a TTY/reboot). Required, not optional.
+  security.pam.services.swaylock = { };
 
   # ---- Login: greetd + tuigreet (minimal) ----
   # Base provides a manual greeter as a fallback. Each MODE (modes.nix) overrides
