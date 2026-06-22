@@ -102,6 +102,10 @@ in
       Block = [ "<all_urls>" ];
       Exceptions = blocklist.workAllowExceptions;
     };
+
+    # Secrets (sops-nix) — work mode only. Split into its own module so its
+    # `config` arg resolves to THIS specialisation's config (placeholder lookup).
+    imports = [ ./fireworks-secret.nix ];
   };
 
   # ===========================================================================

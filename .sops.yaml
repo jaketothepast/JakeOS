@@ -1,0 +1,16 @@
+# sops-nix recipients. Anything matching a creation_rule below is encrypted to
+# BOTH keys: the host (so the machine decrypts secrets at activation) and
+# jacob-work's personal age key (so you can `sops` edit the file as your user,
+# no sudo). Public keys only — safe to commit. Private keys never leave:
+#   - host:        derived from /etc/ssh/ssh_host_ed25519_key (root-owned)
+#   - jacob-work:  ~/.config/sops/age/keys.txt (NOT tracked by git)
+keys:
+  - &jacob-work age15nr8x947yw0gvlafyz79j79nk4nev7ledxmzua7mnwljpnmyjgqqcvs78t
+  - &host age1xe4cy200202hzy92vt5utmg5cup0e68rxhf7v677wdpf4d3mmggsdk92ss
+
+creation_rules:
+  - path_regex: secrets/.*\.yaml$
+    key_groups:
+      - age:
+          - *jacob-work
+          - *host

@@ -140,13 +140,15 @@ The WM created a frame named \"doom-capture\" for us."
 ;;
 ;; CAVEAT: this runs in the Emacs *daemon*, which is started by systemd --user.
 ;; It only sees FIREWORKS_API_KEY if that var is in the systemd user environment
-;; at startup — NOT vars exported in an interactive shell rc. See notes below.
+;; at startup — NOT vars exported in an interactive shell rc.
 ;;
 ;; API KEY — never set codetutor-fireworks-api-key here, and never put the key in
 ;; home.sessionVariables: this config is deployed to the WORLD-READABLE /nix/store.
-;; Leave it nil; the package then reads $FIREWORKS_API_KEY, then auth-source. Put
-;; the key in ~/.authinfo.gpg (encrypted, in your home, NOT Nix-tracked):
-;;     machine api.fireworks.ai password fw_...
+;; Leave it nil; the package reads $FIREWORKS_API_KEY (then auth-source). That var
+;; is injected into the Emacs daemon via an EnvironmentFile rendered by sops-nix
+;; from the encrypted secrets/secrets.yaml — see modules/nixos/modes.nix and
+;; modules/home-manager/work.nix. To set/rotate the key:
+;;     cd /etc/nixos && sops secrets/secrets.yaml   # edit fireworks_api_key, save
 (use-package! codetutor
   :commands (codetutor-open
              codetutor-what-next

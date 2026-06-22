@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, osConfig, ... }:
 {
   # Work mode only. Personal mode never installs these, and the work home subvolume
   # (@home-work → /home/jacob-work) is never mounted in personal — and the daily
@@ -9,6 +9,13 @@
 
   # A flag the Doom config can read to label the agenda / tweak behavior.
   home.sessionVariables.ADHD_MODE = "work";
+
+  # Feed the Fireworks API key (decrypted by sops to /run/secrets, see
+  # modules/nixos/modes.nix) into the Emacs daemon's environment. codetutor reads
+  # $FIREWORKS_API_KEY at load and auto-selects the Fireworks backend when present.
+  # osConfig = the NixOS system config (home-manager runs as a NixOS module).
+  systemd.user.services.emacs.Service.EnvironmentFile =
+    [ osConfig.sops.templates."fireworks-env".path ];
 
   # ===========================================================================
   #  tmux — tuned for running long-lived coding agents (Claude Code etc.)

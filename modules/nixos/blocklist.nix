@@ -42,6 +42,7 @@
     "*://*.gstatic.com/*" "*://*.googleapis.com/*"   # fonts / static assets used at login
     "*://*.openai.com/*" "*://*.chatgpt.com/*"        # codex login (OpenAI / ChatGPT OAuth)
     "*://*.opencode.ai/*"                              # opencode login
+    "*://*.fireworks.ai/*" "*://fireworks.ai/*"        # Fireworks dashboard (API keys) + codetutor backend
     "*://*.plane.so/*" "*://plane.so/*"                # Plane — work task manager
     # OAuth callbacks: the AI CLIs finish their browser login on a local port.
     "*://localhost/*" "*://127.0.0.1/*"
