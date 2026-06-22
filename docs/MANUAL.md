@@ -77,7 +77,7 @@ can't). Personal mode never mounts the work home and never installs work apps.
 | User | `jacob-work` | `jacob-personal` | `admin` |
 | Login | **autologin** | **autologin** | manual prompt (tuigreet) |
 | In `wheel`/sudo? | no | no | **yes** (the only one) |
-| Apps | Slack, dev toolchain | Discord, mpv | — |
+| Apps | Slack, 1Password, dev toolchain (tmux, gh, Docker) | Discord, mpv | — |
 | Blocked | Reddit, LinkedIn, Discord, YouTube, X, HN | Slack + your work domains | — |
 | Browser | default-deny allowlist | relaxed (minus blocked) | — |
 | Home | `/home/jacob-work` | `/home/jacob-personal` | `/home/admin` |
@@ -102,6 +102,28 @@ Entries:
 LUKS for the whole machine). The reboot is deliberate friction so you don't hop into
 "personal" mid-workday.
 
+### Work dev tooling (tmux, gh, Docker, 1Password)
+
+Work mode carries the dev kit; personal mode never installs any of it.
+
+- **`tmux` — run coding agents here, always.** The point is *session persistence*:
+  start an agent (Claude Code etc.), close the laptop or lose the connection, then
+  reattach with the whole run — scrollback, running build, conversation — still alive.
+  - `tmux` start · `tmux a` reattach · prefix is **`Ctrl-b`** then `d` detach, `c` new
+    window, `|` / `-` split, `[` scroll (vi keys, `q` to exit scroll).
+  - One agent per window. When an agent **stops or asks for a permission prompt** it
+    rings the bell and tmux flags that window red in the status bar — so you can run
+    3–5 in parallel and only look when one wants you.
+  - The bell only *fires* if Claude Code is told to ring it. Add to
+    `~/.claude/settings.json`: a `Stop` and a `PermissionRequest` hook running
+    `printf '\a' > /dev/tty`. (tmux is already set to surface it.)
+- **`gh`** — GitHub CLI, authenticated over **SSH** (matches the git remote). `gh pr
+  create`, `gh pr view`, `gh api …`.
+- **Docker** — **rootless** (the daemon runs as you, no root socket / `docker` group).
+  `docker` and `docker-compose` just work; `DOCKER_HOST` is set for you.
+- **1Password** — desktop app + browser unlock + the `op` CLI. The work browser is
+  allow-listed for the web vault and account sync.
+
 ---
 
 ## 5. niri — the windows ("how do I switch?")
@@ -116,7 +138,11 @@ screens. You're never hunting for an overlapping window — new windows open ful
   the current window to one with `Mod+Shift+1/2/3`.
 - **Maximize / restore** the current window: `Mod+F`.
 - **Close** a window: `Mod+Q`.
+- **Lock the screen:** `Mod+L` (swaylock — re-enter your login password to unlock).
 - **Forgot a key?** `Mod+Shift+/` shows the full overlay.
+
+> **Caps Lock is Control.** The Caps Lock key is remapped to Ctrl everywhere (there is
+> no Caps Lock function) — handy for Emacs/agent TUIs.
 
 ---
 
@@ -279,6 +305,7 @@ menu (admin is a manual-login recovery entry, not where daily work happens).
 | `Mod+D` | Launcher (fuzzel) |
 | `Mod+Q` | Close window |
 | `Mod+Shift+F` | Focus on/off (DND toggle) |
+| `Mod+L` | Lock screen (swaylock) |
 | `Mod+←` / `Mod+→` | Previous / next window |
 | `Mod+O` | Overview (see everything) |
 | `Mod+F` | Maximize / restore window |
@@ -303,6 +330,18 @@ menu (admin is a manual-login recovery entry, not where daily work happens).
 | `RET` / `t` / `q` *(in agenda)* | Open item / cycle TODO / quit agenda |
 | `SPC q r` | Restart Emacs |
 | `SPC t z` | Zen / writeroom mode |
+
+**tmux (prefix = `Ctrl-b`; work mode):**
+
+| Key | Action |
+|---|---|
+| `tmux` / `tmux a` | Start / reattach a session |
+| `Ctrl-b d` | Detach (run keeps going) |
+| `Ctrl-b c` | New window (one agent each) |
+| `Ctrl-b 0…9` | Jump to window |
+| `Ctrl-b \|` *(custom)* | Split left/right, same dir |
+| `Ctrl-b -` *(custom)* | Split top/bottom, same dir |
+| `Ctrl-b [` | Scrollback (vi keys; `q` exits) |
 
 **Rebuild (admin only):** `sudo nixos-rebuild switch --flake /etc/nixos#adhd-desktop`
 
