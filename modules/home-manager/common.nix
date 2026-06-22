@@ -301,7 +301,7 @@ in
         height = 28;
         modules-left = [ ];
         modules-center = [ "custom/orgclock" ];
-        modules-right = [ "clock" ];
+        modules-right = [ "battery" "clock" ];
         "custom/orgclock" = {
           # Shows the currently-clocked org task (time-blindness + focus anchor).
           exec = "${pkgs.emacs-pgtk}/bin/emacsclient -e '(if (org-clocking-p) (org-clock-get-clock-string) \"--\")' 2>/dev/null | sed 's/^\"//; s/\"$//'";
@@ -312,11 +312,22 @@ in
           format = "{:%a %d %b  %H:%M}"; # always-visible date+time (time-blindness)
           tooltip-format = "<tt>{calendar}</tt>";
         };
+        battery = {
+          # Nerd-font glyphs ramp with charge; {icon} picks one per the states below.
+          states = { good = 95; warning = 30; critical = 15; };
+          format = "{icon} {capacity}%";
+          format-charging = "󰂄 {capacity}%";
+          format-plugged = "󰚥 {capacity}%";
+          format-icons = [ "󰁺" "󰁻" "󰁼" "󰁽" "󰁾" "󰁿" "󰂀" "󰂁" "󰂂" "󰁹" ];
+          tooltip-format = "{capacity}% — {timeTo}";
+        };
       };
       style = ''
         * { font-family: "JetBrainsMono Nerd Font"; font-size: 12px; }
         window#waybar { background: #1e1e2e; color: #cdd6f4; }
-        #clock, #custom-orgclock { padding: 0 10px; }
+        #clock, #custom-orgclock, #battery { padding: 0 10px; }
+        #battery.warning { color: #f9e2af; }
+        #battery.critical { color: #f38ba8; }
       '';
     };
   };
