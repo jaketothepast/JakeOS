@@ -46,6 +46,8 @@ in
       shellAliases = {
         ll = "eza -la --git";
         cat = "bat -p";
+        # Claude Code without per-action permission prompts (trusted dev loop).
+        cc = "claude --dangerously-skip-permissions";
         # On a daily (non-wheel) user, rebuilds fail by design — this reminds you.
         rebuild = "echo 'Rebuilds run as the admin user — see docs/MANUAL.md (Unblocking).'";
       };
