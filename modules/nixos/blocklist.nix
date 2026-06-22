@@ -22,6 +22,17 @@
   # ---- WORK browser allow-list (Firefox WebsiteFilter is default-DENY) ------
   # Everything not listed is blocked IN THE BROWSER. CLIs/agents are unaffected.
   workAllowExceptions = [
+    # Captive portals (cafe/hotel/guest wifi) live on a private LAN IP and serve
+    # their login page over plain HTTP. Firefox match patterns can't express an
+    # IP range, so allow plaintext HTTP broadly — virtually the whole real web is
+    # HTTPS (still default-deny here), and the /etc/hosts blocklist + uBlock apply.
+    "http://*/*"
+    # Captive-portal *detection* endpoints (the redirect that pops the login page).
+    "*://detectportal.firefox.com/*"
+    "*://captive.apple.com/*"
+    "*://connectivitycheck.gstatic.com/*"
+    "*://www.msftconnecttest.com/*"
+
     "*://*.github.com/*" "*://github.com/*"
     "*://*.githubusercontent.com/*"
     "*://*.anthropic.com/*" "*://*.claude.ai/*" "*://claude.ai/*"
