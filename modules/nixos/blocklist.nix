@@ -36,6 +36,13 @@
     "*://localhost/*" "*://127.0.0.1/*"
     "*://*.stackoverflow.com/*" "*://stackoverflow.com/*"
     "*://*.google.com/*" "*://google.com/*"
+    "*://mail.google.com/*"                            # Gmail (work email lives here)
+    "*://calendar.google.com/*"                        # Google Calendar
+    "*://*.googleusercontent.com/*"                    # Gmail inline images / attachments
+    "*://*.googlemail.com/*"
+    "*://slack.com/*" "*://*.slack.com/*"              # Slack web/login (desktop app SSO bounces through here)
+    "*://*.slack-edge.com/*" "*://*.slack-imgs.com/*"  # Slack CDN (assets, avatars, images)
+    "*://*.slackb.com/*"                               # Slack telemetry/redirects used during login
     "*://*.gitlab.com/*"
     "*://*.npmjs.com/*" "*://*.pypi.org/*" "*://*.crates.io/*"
     "*://*.nixos.org/*" "*://*.mozilla.org/*"
