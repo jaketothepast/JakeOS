@@ -43,7 +43,8 @@ in
       isNormalUser = true;
       uid = 1001;
       description = "Jacob — work";
-      extraGroups = dailyGroups;
+      # plugdev → access to the SDR USB dongles (rtl-sdr / airspy udev rules).
+      extraGroups = dailyGroups ++ [ "plugdev" ];
       hashedPasswordFile = "/var/lib/adhd-secrets/jacob-work.pw";
     };
     home-manager.users.jacob-work = import ../../home/jacob-work.nix;
@@ -85,6 +86,13 @@ in
       setSocketVariable = true; # exports DOCKER_HOST → unix://$XDG_RUNTIME_DIR/docker.sock
     };
     environment.systemPackages = [ pkgs.docker-compose ];
+
+    # SDR dongles (RTL-SDR / Airspy). The packages ship the udev rules that grant
+    # the plugdev group access to the USB devices (jacob-work is in plugdev above).
+    services.udev.packages = [ pkgs.rtl-sdr pkgs.airspy ];
+    # rtl-sdr also wants the DVB kernel modules blacklisted so they don't grab the
+    # dongle before the userspace driver can:
+    boot.blacklistedKernelModules = [ "dvb_usb_rtl28xxu" ];
 
     # Block the time-sinks at the hosts layer (resolved applies this to CLIs too).
     networking.extraHosts = blockHosts blocklist.workBlocked;
