@@ -116,6 +116,11 @@
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
         };
+        # Vimium — keyboard-driven browsing (fits the keyboard-first, low-mouse ethos).
+        "{d7742d87-e61d-4b78-b8a1-b469842139fa}" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/vimium-ff/latest.xpi";
+        };
         # LeechBlock NG — confirm the exact extension id from about:debugging on
         # first run, then uncomment to force-install + lock it too.
         # "leechblockng@proginosko" = {

@@ -37,6 +37,18 @@
 
   networking.networkmanager.enable = true;
 
+  # ---- Wi-Fi stability (Intel Wi-Fi 6 AX200) ----
+  # The card is fine; the driver's default power management is not. With the
+  # balanced power scheme the radio sleeps aggressively and drops association
+  # (dmesg: "Not associated and the session protection is over already...").
+  # Disable power-saving at both layers — this box is always on mains, so the
+  # tiny power saving isn't worth flaky connectivity.
+  networking.networkmanager.wifi.powersave = false;
+  boot.extraModprobeConfig = ''
+    options iwlwifi power_save=0
+    options iwlmvm power_scheme=1
+  '';
+
   # NixOS release this config was written against. Do NOT bump casually.
   system.stateVersion = "25.11";
 }

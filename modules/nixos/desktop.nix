@@ -13,6 +13,11 @@
     xwayland-satellite
     wl-clipboard
     brightnessctl
+    # Graphical network login: nm-connection-editor (GTK). Ships a .desktop
+    # entry, so it shows up in fuzzel (Mod+D → "network"/"connection"). No tray
+    # is added — the waybar stays minimal. Use it to scan/join Wi-Fi and edit
+    # connections without dropping to nmtui.
+    networkmanagerapplet
   ];
 
   # ---- Login: greetd + tuigreet (minimal) ----
