@@ -75,8 +75,13 @@ in
 
     # Rootless Docker for dev work (work mode only — personal mode stays clean).
     # Rootless = the daemon runs as jacob-work, no docker group / root socket.
+    # Pin docker_29: the default (docker_28) is flagged insecure (unmaintained
+    # since Nov 2025) and refuses to evaluate. rootless.package defaults
+    # INDEPENDENTLY of docker.package, so both must be set.
+    virtualisation.docker.package = pkgs.docker_29;
     virtualisation.docker.rootless = {
       enable = true;
+      package = pkgs.docker_29;
       setSocketVariable = true; # exports DOCKER_HOST → unix://$XDG_RUNTIME_DIR/docker.sock
     };
     environment.systemPackages = [ pkgs.docker-compose ];
