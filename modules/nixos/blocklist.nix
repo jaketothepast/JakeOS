@@ -43,6 +43,9 @@
     "*://slack.com/*" "*://*.slack.com/*"              # Slack web/login (desktop app SSO bounces through here)
     "*://*.slack-edge.com/*" "*://*.slack-imgs.com/*"  # Slack CDN (assets, avatars, images)
     "*://*.slackb.com/*"                               # Slack telemetry/redirects used during login
+    "*://1password.com/*" "*://*.1password.com/*"      # 1Password web vault / account sign-in + sync
+    "*://*.b5.com/*"                                    # 1Password backend (b5 is their API/telemetry host)
+    "*://*.1passwordusercontent.com/*"                 # 1Password asset/content host
     "*://*.gitlab.com/*"
     "*://*.npmjs.com/*" "*://*.pypi.org/*" "*://*.crates.io/*"
     "*://*.nixos.org/*" "*://*.mozilla.org/*"

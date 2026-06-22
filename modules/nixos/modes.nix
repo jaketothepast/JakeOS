@@ -65,6 +65,22 @@ in
     # Own the freshly-mounted subvolume root so the user can write their home.
     systemd.tmpfiles.rules = [ "d /home/jacob-work 0700 jacob-work users - -" ];
 
+    # 1Password (work). The GUI needs the system module — not just a package —
+    # so the setuid browser-support helper + polkit unlock work. CLI comes with it.
+    programs._1password.enable = true;
+    programs._1password-gui = {
+      enable = true;
+      polkitPolicyOwners = [ "jacob-work" ];
+    };
+
+    # Rootless Docker for dev work (work mode only — personal mode stays clean).
+    # Rootless = the daemon runs as jacob-work, no docker group / root socket.
+    virtualisation.docker.rootless = {
+      enable = true;
+      setSocketVariable = true; # exports DOCKER_HOST → unix://$XDG_RUNTIME_DIR/docker.sock
+    };
+    environment.systemPackages = [ pkgs.docker-compose ];
+
     # Block the time-sinks at the hosts layer (resolved applies this to CLIs too).
     networking.extraHosts = blockHosts blocklist.workBlocked;
 

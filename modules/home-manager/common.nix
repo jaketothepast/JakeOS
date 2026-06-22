@@ -220,6 +220,8 @@ in
           keyboard {
               xkb {
                   layout "us"
+                  // Caps Lock acts as Control (no Caps Lock function at all).
+                  options "ctrl:nocaps"
               }
           }
           focus-follows-mouse max-scroll-amount="0%"
